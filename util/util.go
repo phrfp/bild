@@ -61,6 +61,43 @@ func RGBAToString(img *image.RGBA) string {
 	return result
 }
 
+
+// GaryToString returns a string representation of the Hex values contained in an image.RGBA.
+func GrayToString(img *image.Gray16) string {
+	var result string
+	result += fmt.Sprintf("\nBounds: %v", img.Bounds())
+	result += fmt.Sprintf("\nStride: %v", img.Stride)
+	for y := 0; y < img.Bounds().Dy(); y++ {
+		result += "\n"
+		for x := 0; x < img.Bounds().Dx(); x++ {
+			pos := y*img.Stride + x*2
+			result += fmt.Sprintf("%#X, ", img.Pix[pos+0])
+			result += fmt.Sprintf("%#X, ", img.Pix[pos+1])
+
+		}
+	}
+	result += "\n"
+	return result
+}
+
+// Gary16ToString returns a string representation of the Hex values contained in an image.RGBA.
+func Gray16ToString(img *image.Gray16) string {
+	var result string
+	result += fmt.Sprintf("\nBounds: %v", img.Bounds())
+	result += fmt.Sprintf("\nStride: %v", img.Stride)
+	for y := 0; y < img.Bounds().Dy(); y++ {
+		result += "\n"
+		for x := 0; x < img.Bounds().Dx(); x++ {
+			pos := y*img.Stride + x*2
+			result += fmt.Sprintf("%#X, ", uint16(img.Pix[pos+0])<<8 | uint16(img.Pix[pos+1]))
+		//	result += fmt.Sprintf("%#X, ", img.Pix[pos+1])
+
+		}
+	}
+	result += "\n"
+	return result
+}
+
 // RGBASlicesEqual returns true if the parameter RGBA color slices a and b match
 // or false if otherwise.
 func RGBASlicesEqual(a, b []color.RGBA) bool {
@@ -75,6 +112,27 @@ func RGBASlicesEqual(a, b []color.RGBA) bool {
 	for i := range a {
 		if a[i] != b[i] {
 			return false
+		}
+	}
+
+	return true
+}
+
+// Gray16ImageEqual returns true if the parameter images a and b match
+// or false if otherwise.
+func Gray16ImageEqual(a, b *image.Gray16) bool {
+	if !a.Rect.Eq(b.Rect) {
+		return false
+	}
+
+	for y := 0; y < a.Bounds().Dy(); y++ {
+		for x := 0; x < a.Bounds().Dx(); x++ {
+			pos := y*a.Stride + x*2
+			resulta := uint16(a.Pix[pos+0])<<8 | uint16(a.Pix[pos+1])
+			resultb := uint16(b.Pix[pos+0])<<8 | uint16(b.Pix[pos+1])
+			if resulta != resultb{
+				return false
+			}
 		}
 	}
 

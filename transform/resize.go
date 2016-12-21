@@ -4,9 +4,9 @@ import (
 	"image"
 	"math"
 
-	"github.com/anthonynsimon/bild/clone"
-	"github.com/anthonynsimon/bild/math/f64"
-	"github.com/anthonynsimon/bild/parallel"
+	"github.com/phrfp/bild/clone"
+	"github.com/phrfp/bild/math/f64"
+	"github.com/phrfp/bild/parallel"
 )
 
 // Resize returns a new image with its size adjusted to the new width and height. The filter
@@ -31,6 +31,26 @@ func Resize(img image.Image, width, height int, filter ResampleFilter) *image.RG
 	} else {
 		dst = resampleHorizontal(src, width, filter)
 		dst = resampleVertical(dst, height, filter)
+	}
+
+	return dst
+}
+
+
+func ResizeG16(img image.Image, width, height int, filter ResampleFilter) *image.Gray16 {
+	if width <= 0 || height <= 0 || img.Bounds().Empty() {
+		return image.NewGray16(image.Rect(0, 0, 0, 0))
+	}
+
+	src := clone.AsGray16(img)
+	var dst *image.Gray16
+
+	// NearestNeighbor is a special case, it's faster to compute without convolution matrix.
+	if filter.Support <= 0 {
+		dst = nearestNeighborG16(src, width, height)
+	} else {
+		dst = resampleHorizontalG16(src, width, filter)
+		dst = resampleVerticalG16(dst, height, filter)
 	}
 
 	return dst
@@ -176,6 +196,135 @@ func nearestNeighbor(src *image.RGBA, width, height int) *image.RGBA {
 			dst.Pix[pos+1] = src.Pix[ipos+1]
 			dst.Pix[pos+2] = src.Pix[ipos+2]
 			dst.Pix[pos+3] = src.Pix[ipos+3]
+		}
+	}
+
+	return dst
+}
+
+
+//Added functions for grayscale image
+
+func resampleHorizontalG16(src *image.Gray16, width int, filter ResampleFilter) *image.Gray16 {
+	srcWidth, srcHeight := src.Bounds().Dx(), src.Bounds().Dy()
+	srcStride := src.Stride
+
+	delta := float64(srcWidth) / float64(width)
+	// Scale must be at least 1. Special case for image size reduction filter radius.
+	scale := math.Max(delta, 1.0)
+
+	dst := image.NewGray16(image.Rect(0, 0, width, srcHeight))
+	dstStride := dst.Stride
+
+	filterRadius := math.Ceil(scale * filter.Support)
+
+	parallel.Line(srcHeight, func(start, end int) {
+		for y := start; y < end; y++ {
+			for x := 0; x < width; x++ {
+				// value of x from src
+				ix := (float64(x)+0.5)*delta - 0.5
+				istart, iend := int(ix-filterRadius+0.5), int(ix+filterRadius)
+
+				if istart < 0 {
+					istart = 0
+				}
+				if iend >= srcWidth {
+					iend = srcWidth - 1
+				}
+
+				var gr float64
+				var sum float64
+				for kx := istart; kx <= iend; kx++ {
+
+					srcPos := y*srcStride + kx*2
+					// normalize the sample position to be evaluated by the filter
+					normPos := (float64(kx) - ix) / scale
+					fValue := filter.Fn(normPos)
+
+					tpix := uint16(src.Pix[srcPos+0])<<8 | uint16(src.Pix[srcPos+1])
+					gr += float64(tpix) * fValue
+					sum += fValue
+				}
+
+				dstPos := y*dstStride + x*2
+				tvalue := uint16(f64.Clamp((gr/sum)+0.5, 0, 65535))
+				dst.Pix[dstPos+0] = uint8(tvalue >> 8)
+				dst.Pix[dstPos+1] = uint8(tvalue)
+			}
+		}
+	})
+
+	return dst
+}
+
+func resampleVerticalG16(src *image.Gray16, height int, filter ResampleFilter) *image.Gray16 {
+	srcWidth, srcHeight := src.Bounds().Dx(), src.Bounds().Dy()
+	srcStride := src.Stride
+
+	delta := float64(srcHeight) / float64(height)
+	scale := math.Max(delta, 1.0)
+
+	dst := image.NewGray16(image.Rect(0, 0, srcWidth, height))
+	dstStride := dst.Stride
+
+	filterRadius := math.Ceil(scale * filter.Support)
+
+	parallel.Line(height, func(start, end int) {
+		for y := start; y < end; y++ {
+			iy := (float64(y)+0.5)*delta - 0.5
+
+			istart, iend := int(iy-filterRadius+0.5), int(iy+filterRadius)
+
+			if istart < 0 {
+				istart = 0
+			}
+			if iend >= srcHeight {
+				iend = srcHeight - 1
+			}
+
+			for x := 0; x < srcWidth; x++ {
+				var gr float64
+				var sum float64
+				for ky := istart; ky <= iend; ky++ {
+
+					srcPos := ky*srcStride + x*2
+					normPos := (float64(ky) - iy) / scale
+					fValue := filter.Fn(normPos)
+
+					tpix := uint16(src.Pix[srcPos+0])<<8 | uint16(src.Pix[srcPos+1])
+					gr += float64(tpix) * fValue
+					sum += fValue
+				}
+
+				dstPos := y*dstStride + x*2
+				tvalue := uint16(f64.Clamp((gr/sum)+0.5, 0, 65535))
+				dst.Pix[dstPos+0] = uint8(tvalue >> 8)
+				dst.Pix[dstPos+1] = uint8(tvalue)
+			}
+		}
+	})
+
+	return dst
+}
+
+func nearestNeighborG16(src *image.Gray16, width, height int) *image.Gray16 {
+
+	srcW, srcH := src.Bounds().Dx(), src.Bounds().Dy()
+	srcStride := src.Stride
+
+	dst := image.NewGray16(image.Rect(0, 0, width, height))
+	dstStride := dst.Stride
+
+	dx := float64(srcW) / float64(width)
+	dy := float64(srcH) / float64(height)
+
+	for y := 0; y < height; y++ {
+		for x := 0; x < width; x++ {
+			pos := y*dstStride + x*2
+			ipos := int((float64(y)+0.5)*dy)*srcStride + int((float64(x)+0.5)*dx)
+			tpix := uint16(src.Pix[ipos+0])<<8 | uint16(src.Pix[ipos+1])
+			dst.Pix[pos+0] = uint8(tpix >> 8)
+			dst.Pix[pos+1] = uint8(tpix)
 		}
 	}
 

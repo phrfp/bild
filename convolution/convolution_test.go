@@ -4,7 +4,7 @@ import (
 	"image"
 	"testing"
 
-	"github.com/anthonynsimon/bild/util"
+	"github.com/phrfp/bild/util"
 )
 
 func TestConvolve(t *testing.T) {
@@ -223,5 +223,99 @@ func benchConvolve(b *testing.B, w, h int, k *Kernel) {
 	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
 		Convolve(img, k, &Options{Wrap: false})
+	}
+}
+
+//Tests for grayscale images
+
+func TestConvolveG16(t *testing.T) {
+	cases := []struct{
+		kernel *Kernel
+		value image.Image
+		expected *image.Gray16
+	}{
+		{
+			kernel:  &Kernel{[]float64{}, 0, 0},
+			value: &image.Gray16{
+				Rect:   image.Rect(0, 0, 3, 3),
+				Stride: 2 * 3,
+				Pix: []uint8{
+					0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+					0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+					0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+				},
+			},
+			expected: &image.Gray16{
+				Rect:   image.Rect(0, 0, 3, 3),
+				Stride: 2 * 3,
+				Pix: []uint8{
+					0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+					0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+					0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+				},
+			},
+		},
+		{
+			kernel: &Kernel{[]float64{
+				0, 0, 0,
+				0, 1, 0,
+				0, 0, 0,
+			}, 3, 3},
+			value: &image.Gray16{
+				Rect:   image.Rect(0, 0, 3, 3),
+				Stride: 2 * 3,
+				Pix: []uint8{
+					0xFF, 0xFF, 0x40, 0x8F, 0x4F, 0xFF,
+					0xFF, 0xFF, 0x40, 0x8F, 0x4F, 0xFF,
+					0xFF, 0xFF, 0x40, 0x8F, 0x4F, 0xFF,
+				},
+			},
+			expected: &image.Gray16{
+				Rect:   image.Rect(0, 0, 3, 3),
+				Stride: 2 * 3,
+				Pix: []uint8{
+					0xFF, 0xFF, 0x40, 0x8F, 0x4F, 0xFF,
+					0xFF, 0xFF, 0x40, 0x8F, 0x4F, 0xFF,
+					0xFF, 0xFF, 0x40, 0x8F, 0x4F, 0xFF,
+				},
+			},
+		},
+	}
+
+	for _, c := range cases {
+		actual := ConvolveG16(c.value, c.kernel)
+		if !util.Gray16ImageEqual(actual, c.expected) {
+			t.Errorf("%s:\nexpected:%v\nactual:%v\n", "Convolve", util.Gray16ToString(c.expected), util.Gray16ToString(actual))
+		}
+	}
+
+}
+
+//Benchmarks for Gary 16
+func BenchmarkConvolveG16K3(b *testing.B) {
+	benchConvolveg16(b, 1024, 1024, NewKernel(3, 3))
+}
+
+func BenchmarkConvolveG16K8(b *testing.B) {
+	benchConvolveg16(b, 1024, 1024, NewKernel(8, 8))
+}
+
+func BenchmarkConvolveG16K32(b *testing.B) {
+	benchConvolveg16(b, 1024, 1024, NewKernel(32, 32))
+}
+
+func BenchmarkConvolveG16K64(b *testing.B) {
+	benchConvolveg16(b, 1024, 1024, NewKernel(64, 64))
+}
+
+func BenchmarkConvolve4096G16K8(b *testing.B) {
+	benchConvolveg16(b, 4096, 4096, NewKernel(8, 8))
+}
+
+func benchConvolveg16(b *testing.B, w, h int, k *Kernel) {
+	img := image.NewGray16(image.Rect(0, 0, w, h))
+	b.ResetTimer()
+	for n := 0; n < b.N; n++ {
+		ConvolveG16(img, k)
 	}
 }

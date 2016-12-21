@@ -4,7 +4,7 @@ import (
 	"image"
 	"testing"
 
-	"github.com/anthonynsimon/bild/util"
+	"github.com/phrfp/bild/util"
 )
 
 func TestResize(t *testing.T) {
@@ -313,7 +313,71 @@ func TestResizeBox(t *testing.T) {
 	for _, c := range cases {
 		actual := Resize(c.img, c.width, c.height, Box)
 		if !util.RGBAImageEqual(actual, c.expected) {
-			t.Errorf("%s: expected: %#v, actual: %#v", "ResizeNearestNeighbor "+c.name, util.RGBAToString(c.expected), util.RGBAToString(actual))
+			t.Errorf("%s: \nexpected:%v\nactual:%v\n", "ResizeNearestNeighbor "+c.name, util.RGBAToString(c.expected), util.RGBAToString(actual))
+		}
+	}
+}
+
+func TestResizeBoxG16(t *testing.T  ){
+	cases := []struct {
+		name     string
+		width    int
+		height   int
+		img      *image.Gray16
+		expected *image.Gray16
+	}{
+		{
+			name:   "x2",
+			width:  4,
+			height: 4,
+			img: &image.Gray16{
+				Stride: 2 * 2,
+				Rect:   image.Rect(0, 0, 2, 2),
+				Pix: []uint8{
+					0xFF, 0x00, 0x00, 0xFF,
+					0x00, 0x00, 0xFF, 0xFF,
+				},
+			},
+			expected: &image.Gray16{
+				Stride: 4 * 2,
+				Rect:   image.Rect(0, 0, 4, 4),
+				Pix: []uint8{
+					0xFF, 0x00, 0xFF, 0x00, 0x00, 0xFF, 0x00, 0xFF,
+					0xFF, 0x00, 0xFF, 0x00, 0x00, 0xFF, 0x00, 0xFF,
+					0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF,
+					0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF,
+				},
+			},
+		},
+		{
+			name:   "x0.5",
+			width:  2,
+			height: 2,
+			img: &image.Gray16{
+				Stride: 4 * 2,
+				Rect:   image.Rect(0, 0, 4, 4),
+				Pix: []uint8{
+					0xFF, 0x00, 0x00, 0xFF, 0xFF, 0x00, 0x00, 0xFF,
+					0xFF, 0x00, 0x00, 0xFF, 0xFF, 0x00, 0x00, 0xFF,
+					0x00, 0x00, 0xFF, 0xFF, 0x00, 0x00, 0xFF, 0xFF,
+					0x00, 0x00, 0xFF, 0xFF, 0x00, 0x00, 0xFF, 0xFF,
+				},
+			},
+			expected: &image.Gray16{
+				Stride: 2 * 2,
+				Rect:   image.Rect(0, 0, 2, 2),
+				Pix: []uint8{
+					0x80, 0x00, 0x80, 0x00,
+					0x80, 0x00, 0x80, 0x00,
+				},
+			},
+		},
+	}
+
+	for _, c := range cases {
+		actual := ResizeG16(c.img, c.width, c.height, Box)
+		if !util.Gray16ImageEqual(actual, c.expected) {
+			t.Errorf("%s: \nexpected:%v\nactual:%v\n", "ResizeNearestNeighbor "+c.name, util.Gray16ToString(c.expected), util.Gray16ToString(actual))
 		}
 	}
 }

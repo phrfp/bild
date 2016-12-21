@@ -4,7 +4,7 @@ import (
 	"image"
 	"testing"
 
-	"github.com/anthonynsimon/bild/util"
+	"github.com/phrfp/bild/util"
 )
 
 func TestBoxBlur(t *testing.T) {
@@ -163,4 +163,43 @@ func TestGaussianBlur(t *testing.T) {
 			t.Errorf("%s: expected: %#v, actual: %#v", "GaussianBlur", c.expected, actual)
 		}
 	}
+}
+
+func TestGaussianBlurG16(t *testing.T){
+
+cases := []struct{
+	radius   float64
+	value    image.Image
+	expected *image.Gray16
+}{
+	{
+		radius: 0.0,
+		value: &image.Gray16{
+			Rect:   image.Rect(0, 0, 3, 3),
+			Stride: 3 * 2,
+			Pix: []uint8{
+				0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+				0x00, 0x00, 0x00, 0xFF, 0x00, 0x00,
+				0x00, 0x00, 0x00, 0xFF, 0x00, 0x00,
+			},
+		},
+		expected: &image.Gray16{
+			Rect:   image.Rect(0, 0, 3, 3),
+			Stride: 3 * 2,
+			Pix: []uint8{
+				0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+				0x00, 0x00, 0x00, 0xFF, 0x00, 0x00,
+				0x00, 0x00, 0x00, 0xFF, 0x00, 0x00,
+			},
+		},
+	},
+}
+
+for _, c := range cases {
+	actual := GaussianG16(c.value, c.radius)
+	if !util.Gray16ImageEqual(actual, c.expected) {
+		t.Errorf("%s: expected: %#v, actual: %#v", "GaussianBlur", util.Gray16ToString(c.expected), util.Gray16ToString(actual))
+	}
+}
+
 }

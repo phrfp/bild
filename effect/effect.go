@@ -6,14 +6,14 @@ import (
 	"image/color"
 	"math"
 
-	"github.com/anthonynsimon/bild/adjust"
-	"github.com/anthonynsimon/bild/blend"
-	"github.com/anthonynsimon/bild/blur"
-	"github.com/anthonynsimon/bild/clone"
-	"github.com/anthonynsimon/bild/convolution"
-	"github.com/anthonynsimon/bild/math/f64"
-	"github.com/anthonynsimon/bild/parallel"
-	"github.com/anthonynsimon/bild/util"
+	"github.com/phrfp/bild/adjust"
+	"github.com/phrfp/bild/blend"
+	"github.com/phrfp/bild/blur"
+	"github.com/phrfp/bild/clone"
+	"github.com/phrfp/bild/convolution"
+	"github.com/phrfp/bild/math/f64"
+	"github.com/phrfp/bild/parallel"
+	"github.com/phrfp/bild/util"
 )
 
 // Invert returns a negated version of the image.
@@ -212,6 +212,51 @@ func Sobel(src image.Image) *image.RGBA {
 	hSobel := convolution.Convolve(src, &hk, &convolution.Options{Bias: 0, Wrap: false, KeepAlpha: true})
 
 	return blend.Add(blend.Multiply(vSobel, vSobel), blend.Multiply(hSobel, hSobel))
+}
+
+func SobelG16(src image.Image) *image.Gray16 {
+
+	hk := convolution.Kernel{
+		Matrix: []float64{
+			1, 2, 1,
+			0, 0, 0,
+			-1, -2, -1,
+		},
+		Width:  3,
+		Height: 3,
+	}
+
+	vk := convolution.Kernel{
+		Matrix: []float64{
+			-1, 0, 1,
+			-2, 0, 2,
+			-1, 0, 1,
+		},
+		Width:  3,
+		Height: 3,
+	}
+
+	vSobel := convolution.ConvolveG16(src, &vk)
+	hSobel := convolution.ConvolveG16(src, &hk)
+
+	return blend.AddG16(blend.MultiplyG16(vSobel, vSobel), blend.MultiplyG16(hSobel, hSobel))
+}
+
+func SobelHorzG16(src image.Image) *image.Gray16 {
+
+	hk := convolution.Kernel{
+		Matrix: []float64{
+			1, 2, 1,
+			0, 0, 0,
+			-1, -2, -1,
+		},
+		Width:  3,
+		Height: 3,
+	}
+
+	hSobel := convolution.ConvolveG16(src, &hk)
+
+	return blend.MultiplyG16(hSobel, hSobel)
 }
 
 // Median returns a new image in which each pixel is the median of its neighbors.

@@ -4,9 +4,10 @@ package convolution
 import (
 	"image"
 	"math"
+	"github.com/phrfp/bild/clone"
+	"github.com/phrfp/bild/parallel"
+	
 
-	"github.com/anthonynsimon/bild/clone"
-	"github.com/anthonynsimon/bild/parallel"
 )
 
 // Options are the Convolve function parameters.
@@ -19,7 +20,7 @@ type Options struct {
 	KeepAlpha bool
 }
 
-// Convolve applies a convolution matrix (kernel) to an image with the supplied options.
+// Convolve applies a convolution matrix (kernel) to an image with the supplied options and returns a RGBA image
 //
 // Usage example:
 //
@@ -130,6 +131,77 @@ func execute(img image.Image, k Matrix, bias float64, wrap, keepAlpha bool) *ima
 			}
 		})
 	}
+
+	return dst
+}
+
+// Convolve applies a convolution matrix (kernel) to an image with the supplied options and returns a Gray16 image
+//
+// Usage example:
+//
+//		result := Convolve(img, kernel, &Options{Bias: 0, Wrap: false})
+//
+func ConvolveG16(img image.Image, k Matrix) *image.Gray16 {
+	// Config the convolution
+
+
+	return executeG16(img, k)
+}
+
+func executeG16(img image.Image, k Matrix) *image.Gray16 {
+	// Kernel attributes
+	lenX := k.MaxX()
+	lenY := k.MaxY()
+	radiusX := lenX / 2
+	radiusY := lenY / 2
+
+	// Pad the source image, basically pre-computing the pixels outside of image bounds
+	var src *image.Gray16
+	src = clone.PadG16(img, radiusX, radiusY, clone.EdgeExtend)
+
+
+	// src bounds now includes padded pixels
+	srcBounds := src.Bounds()
+	srcW, srcH := srcBounds.Dx(), srcBounds.Dy()
+	dst := image.NewGray16(img.Bounds())
+
+
+		// Notice we can't use lenY since it will be larger than the actual padding pixels
+		// as it includes the identity element
+		parallel.Line(srcH-(radiusY*2), func(start, end int) {
+			// Correct range so we don't iterate over the padded pixels on the main loop
+
+			for y := start + radiusY; y < end+radiusY; y++ {
+
+				for x := radiusX; x < srcW-radiusX; x++ {
+
+					var gr float64
+					// Kernel has access to the padded pixels
+					for ky := 0; ky < lenY; ky++ {
+						iy := y - radiusY + ky
+
+						for kx := 0; kx < lenX; kx++ {
+							ix := x - radiusX + kx
+
+							kvalue := k.At(kx, ky)
+							ipos := iy*src.Stride + ix*2
+							tpix := uint16(src.Pix[ipos+0])<<8 | uint16(src.Pix[ipos+1])
+							gr += float64(tpix) * kvalue
+						}
+					}
+
+					// Map x and y indicies to non-padded range
+					tabs := math.Abs(gr)
+					tvalue := uint16(math.Max(math.Min(tabs, 65535), 0))
+
+					pos := (y-radiusY)*dst.Stride + (x-radiusX)*2
+					dst.Pix[pos+0] = uint8(tvalue >> 8)
+					dst.Pix[pos+1] = uint8(tvalue)
+
+				}
+			}
+		})
+
 
 	return dst
 }

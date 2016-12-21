@@ -5,10 +5,11 @@ import (
 	"image"
 	"math"
 
-	"github.com/anthonynsimon/bild/clone"
-	"github.com/anthonynsimon/bild/fcolor"
-	"github.com/anthonynsimon/bild/math/f64"
-	"github.com/anthonynsimon/bild/parallel"
+	"github.com/phrfp/bild/clone"
+	"github.com/phrfp/bild/fcolor"
+	"github.com/phrfp/bild/fgray"
+	"github.com/phrfp/bild/math/f64"
+	"github.com/phrfp/bild/parallel"
 )
 
 // Normal combines the foreground and background images by placing the foreground over the
@@ -36,6 +37,16 @@ func Add(bg image.Image, fg image.Image) *image.RGBA {
 	return dst
 }
 
+func AddG16(bg image.Image, fg image.Image) *image.Gray16 {
+	dst := blendg16(bg, fg, func(c0, c1 fgray.GRAYF64) fgray.GRAYF64 {
+		grF64 := c0.GY + c1.GY
+		gr := fgray.GRAYF64{GY:grF64}
+		return gr
+	})
+	return dst
+}
+
+
 // Multiply combines the foreground and background images by multiplying their
 // normalized values and returns the resulting image.
 func Multiply(bg image.Image, fg image.Image) *image.RGBA {
@@ -50,6 +61,16 @@ func Multiply(bg image.Image, fg image.Image) *image.RGBA {
 
 	return dst
 }
+
+func MultiplyG16(bg image.Image, fg image.Image) *image.Gray16 {
+	dst := blendg16(bg, fg, func(c0, c1 fgray.GRAYF64) fgray.GRAYF64 {
+		grF64 := ((c0.GY) * (c1.GY)) 
+		gr := fgray.GRAYF64{GY:grF64}
+		return gr
+	})
+	return dst
+}
+
 
 // Overlay combines the foreground and background images by using Multiply when channel values < 0.5
 // or using Screen otherwise and returns the resulting image.
@@ -281,6 +302,15 @@ func Subtract(bg image.Image, fg image.Image) *image.RGBA {
 	return dst
 }
 
+func SubtractG16(bg image.Image, fg image.Image) *image.Gray16 {
+	dst := blendg16(bg, fg, func(c0, c1 fgray.GRAYF64) fgray.GRAYF64 {
+		grF64 := c1.GY - c0.GY
+		gr := fgray.GRAYF64{GY:grF64}
+		return gr
+	})
+	return dst
+}
+
 // Opacity returns an image which blends the two input images by the percentage provided.
 // Percent must be of range 0 <= percent <= 1.0
 func Opacity(bg image.Image, fg image.Image, percent float64) *image.RGBA {
@@ -373,6 +403,50 @@ func blend(bg image.Image, fg image.Image, fn func(fcolor.RGBAF64, fcolor.RGBAF6
 
 	return dst
 }
+
+func blendg16(bg image.Image, fg image.Image, fn func(fgray.GRAYF64, fgray.GRAYF64) fgray.GRAYF64) *image.Gray16 {
+	bgBounds := bg.Bounds()
+	fgBounds := fg.Bounds()
+
+	var w, h int
+	if bgBounds.Dx() < fgBounds.Dx() {
+		w = bgBounds.Dx()
+	} else {
+		w = fgBounds.Dx()
+	}
+	if bgBounds.Dy() < fgBounds.Dy() {
+		h = bgBounds.Dy()
+	} else {
+		h = fgBounds.Dy()
+	}
+
+	bgSrc := clone.AsGray16(bg)
+	fgSrc := clone.AsGray16(fg)
+	dst := image.NewGray16(image.Rect(0, 0, w, h))
+
+	parallel.Line(h, func(start, end int) {
+		for y := start; y < end; y++ {
+			for x := 0; x < w; x++ {
+				bgPos := y*bgSrc.Stride + x*2
+				fgPos := y*fgSrc.Stride + x*2
+				result := fn(
+					fgray.NewGrayF64(uint16(bgSrc.Pix[bgPos+0])<<8 | uint16(bgSrc.Pix[bgPos+1])),
+					fgray.NewGrayF64(uint16(fgSrc.Pix[fgPos+0])<<8 | uint16(fgSrc.Pix[fgPos+1])))
+
+
+				result.ClampG16()
+
+				dstPos := y*dst.Stride + x*2
+				tpix := uint16( result.GY * 65535 )
+				dst.Pix[dstPos+0] = uint8(tpix >> 8)
+				dst.Pix[dstPos+1] = uint8(tpix)
+			}
+		}
+	})
+
+	return dst
+}
+
 
 // alphaComp returns a new color after compositing the two colors
 // based on the foreground's alpha channel.

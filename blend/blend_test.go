@@ -4,7 +4,7 @@ import (
 	"image"
 	"testing"
 
-	"github.com/anthonynsimon/bild/util"
+	"github.com/phrfp/bild/util"
 )
 
 func TestNormal(t *testing.T) {
@@ -192,6 +192,48 @@ func TestAdd(t *testing.T) {
 	}
 }
 
+func TestAddG16(t *testing.T) {
+	cases := []struct {
+		value0   image.Image
+		value1   image.Image
+		expected *image.Gray16
+	}{
+		{
+			value0: &image.Gray16{
+				Rect:   image.Rect(0, 0, 2, 2),
+				Stride: 4,
+				Pix: []uint8{
+					0x08, 0x80, 0x08, 0x80,
+					0x08, 0x80, 0x08, 0x80,
+				},
+			},
+			value1: &image.Gray16{
+				Rect:   image.Rect(0, 0, 2, 2),
+				Stride: 4,
+				Pix: []uint8{
+					0x08, 0x80, 0x08, 0x80,
+					0x08, 0x80, 0x08, 0x80,
+				},
+			},
+			expected: &image.Gray16{
+				Rect:   image.Rect(0, 0, 2, 2),
+				Stride: 4,
+				Pix: []uint8{
+					0x11, 0x00, 0x11, 0x00,
+					0x11, 0x00, 0x11, 0x00,
+				},
+			},
+		},
+	}
+
+	for _, c := range cases {
+		actual := AddG16(c.value0, c.value1)
+		if !util.Gray16ImageEqual(actual, c.expected) {
+			t.Errorf("%s: \nexpected:%v\nactual:%v\n", "AddG16: ", util.Gray16ToString(c.expected), util.Gray16ToString(actual))
+		}
+	}
+}
+
 func TestMultiply(t *testing.T) {
 	cases := []struct {
 		value0   image.Image
@@ -279,6 +321,48 @@ func TestMultiply(t *testing.T) {
 		actual := Multiply(c.value0, c.value1)
 		if !util.RGBAImageEqual(actual, c.expected) {
 			t.Errorf("%s: expected %#v, actual: %#v", "Multiply", c.expected, actual)
+		}
+	}
+}
+
+func TestMultiplyG16(t* testing.T){
+	cases := []struct {
+		value0   image.Image
+		value1   image.Image
+		expected *image.Gray16
+	}{
+		{
+			value0: &image.Gray16{
+				Rect:   image.Rect(0, 0, 2, 2),
+				Stride: 4,
+				Pix: []uint8{
+					0x08, 0x80, 0x08, 0x80,
+					0x08, 0x80, 0x08, 0x80,
+				},
+			},
+			value1: &image.Gray16{
+				Rect:   image.Rect(0, 0, 2, 2),
+				Stride: 4,
+				Pix: []uint8{
+					0x00, 0x02, 0x00, 0x02,
+					0x00, 0x02, 0x00, 0x02,
+				},
+			},
+			expected: &image.Gray16{
+				Rect:   image.Rect(0, 0, 2, 2),
+				Stride: 4,
+				Pix: []uint8{
+					0x11, 0x00, 0x11, 0x00,
+					0x11, 0x00, 0x11, 0x00,
+				},
+			},
+		},
+	}
+
+	for _, c := range cases {
+		actual := MultiplyG16(c.value0, c.value1)
+		if !util.Gray16ImageEqual(actual, c.expected) {
+			t.Errorf("%s: \nexpected:%v\nactual:%v\n", "MultiplyG16: ", util.Gray16ToString(c.expected), util.Gray16ToString(actual))
 		}
 	}
 }
@@ -1283,6 +1367,48 @@ func TestSubtract(t *testing.T) {
 		actual := Subtract(c.value0, c.value1)
 		if !util.RGBAImageEqual(actual, c.expected) {
 			t.Errorf("%s: expected %#v, actual: %#v", "Subtract", c.expected, actual)
+		}
+	}
+}
+
+func TestSubtractG16(t *testing.T) {
+	cases := []struct {
+		value0   image.Image
+		value1   image.Image
+		expected *image.Gray16
+	}{
+		{
+			value0: &image.Gray16{
+				Rect:   image.Rect(0, 0, 2, 2),
+				Stride: 4,
+				Pix: []uint8{
+					0x11, 0x00, 0x11, 0x00,
+					0x11, 0x00, 0x11, 0x00,
+				},
+			},
+			value1: &image.Gray16{
+				Rect:   image.Rect(0, 0, 2, 2),
+				Stride: 4,
+				Pix: []uint8{
+					0x08, 0x80, 0x08, 0x80,
+					0x08, 0x80, 0x08, 0x80,
+				},
+			},
+			expected: &image.Gray16{
+				Rect:   image.Rect(0, 0, 2, 2),
+				Stride: 4,
+				Pix: []uint8{
+					0x08, 0x80, 0x08, 0x80,
+					0x08, 0x80, 0x08, 0x80,
+				},
+			},
+		},
+	}
+
+	for _, c := range cases {
+		actual := SubtractG16(c.value1, c.value0)
+		if !util.Gray16ImageEqual(actual, c.expected) {
+			t.Errorf("%s: \nexpected:%v\nactual:%v\n", "SubG16: ", util.Gray16ToString(c.expected), util.Gray16ToString(actual))
 		}
 	}
 }
