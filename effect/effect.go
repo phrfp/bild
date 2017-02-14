@@ -259,6 +259,23 @@ func SobelHorzG16(src image.Image) *image.Gray16 {
 	return blend.MultiplyG16(hSobel, hSobel)
 }
 
+func SobelVertG16(src image.Image) *image.Gray16 {
+
+	vk := convolution.Kernel{
+		Matrix: []float64{
+			-1, 0, 1,
+			-2, 0, 2,
+			-1, 0, 1,
+		},
+		Width:  3,
+		Height: 3,
+	}
+
+	vSobel := convolution.ConvolveG16(src, &vk)
+
+	return blend.MultiplyG16(vSobel, vSobel)
+}
+
 // Median returns a new image in which each pixel is the median of its neighbors.
 // The parameter radius corresponds to the radius of the neighbor area to be searched,
 // for example a radius of R will result in a search window length of 2R+1 for each dimension.

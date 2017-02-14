@@ -3,35 +3,58 @@ package extractfeature
 import (
 
   "image"
-  _"fmt"
+  "fmt"
   "github.com/phrfp/bild/clone"
   "math"
 	"github.com/phrfp/bild/parallel"
 )
 
-func VerticalLinePositions(src* image.Gray16, h1, h2 int) []uint16  {
+func VerticalLinePositions(src* image.Gray16, h1, h2, threshold int) []uint16  {
+  fmt.Println("-----------VLPos---------------")
 
   //create subimage and pass to peak finder.
   subRect := image.Rect(src.Bounds().Min.X, h1, src.Bounds().Max.X, h2)
   subimage := src.SubImage(subRect)
 
-  pair := maxpeakvert1D( subimage )
+  pair := maxpeakvert1D( subimage, threshold )
+  fmt.Println(pair)
+
   avgpos := avg(pair)
+  fmt.Println(avgpos)
+
   return avgpos
 
 }
 
+func VerticalLinePositionsF64(src* image.Gray16, h1, h2, threshold int) []float64  {
+  fmt.Println("-----------VLPos---------------")
+
+  //create subimage and pass to peak finder.
+  subRect := image.Rect(src.Bounds().Min.X, h1, src.Bounds().Max.X, h2)
+  subimage := src.SubImage(subRect)
+
+  pair := maxpeakvert1D( subimage, threshold )
+  fmt.Println(pair)
+
+  avgpos := avgf64(pair)
+  fmt.Println(avgpos)
+
+  return avgpos
+
+}
+
+
 func HorizontalLinePosition(src* image.Gray16, w1, w2, threshold int) []uint16  {
 
-//  fmt.Println("-----------HLPos---------------")
+  // fmt.Println("-----------HLPos---------------")
   //create subimage and pass to peak finder.
   subRect := image.Rect(w1, src.Bounds().Min.Y, w2, src.Bounds().Max.Y)
   subimage := src.SubImage(subRect)
 
   pair := maxpeakhorz1D( subimage, threshold )
-//  fmt.Println(pair)
+  // fmt.Println(pair)
   avgpos := avg(pair)
-//  fmt.Println(avgpos)
+  // fmt.Println(avgpos)
   return avgpos
 
 }
@@ -60,7 +83,30 @@ func avg( array []uint16 ) []uint16 {
 
 }
 
-func maxpeakvert1D( img image.Image ) []uint16 {
+func avgf64( array []uint16 ) []float64 {
+
+  var total1 float64 = 0
+  var total2 float64 = 0
+  // fmt.Println("---------avg----------")
+  // fmt.Println(array)
+
+  for i := 0; i < len(array)/2; i++ {
+    ipos := i*2
+    total1 += float64(array[ipos])
+    total2 += float64(array[ipos+1])
+  }
+
+  total1 = total1 / float64(len(array)/2)
+  total2 = total2 / float64(len(array)/2)
+
+  tavg := make([]float64, 2)
+  tavg[0] = total1
+  tavg[1] =total2
+  return tavg
+
+}
+
+func maxpeakvert1D( img image.Image, threshold int ) []uint16 {
 
 //  fmt.Println("---------maxpeak1D----------")
 
@@ -78,7 +124,7 @@ func maxpeakvert1D( img image.Image ) []uint16 {
     // fmt.Println("End: ", end)
 
     for y := start; y < end; y++ {
-    //  fmt.Println("---------Row: ", y)
+
       var tmax1 uint16 = 0
       var tmax2 uint16 = 0
       var pos1 uint16 = 0
@@ -90,19 +136,24 @@ func maxpeakvert1D( img image.Image ) []uint16 {
 
           tpix := uint16(src.Pix[ipos+0])<<8 | uint16(src.Pix[ipos+1])
 
-          if (tpix > tmax1 || tpix > tmax2) { // is it woorth evaluating the peak
+          if ( (tpix > tmax1 || tpix > tmax2) && tpix > uint16(threshold)) { // is it woorth evaluating the peak
             tpix_p1 := uint16(src.Pix[ipos+2])<<8 | uint16(src.Pix[ipos+3])
             tpix_m1 := uint16(src.Pix[ipos-2])<<8 | uint16(src.Pix[ipos-1])
 
-            // fmt.Println(tpix_p1)
-            // fmt.Println(tpix_m1)
+      //      fmt.Println(tpix_p1)
+      //      fmt.Println(tpix_m1)
             if (tpix > tpix_p1 && tpix > tpix_m1) { //check that we have a peak
+            //  fmt.Println("------------Peak---------------")
+
               if (tpix > tmax1 && tpix > tmax2) { //check that its local max
-                pos2 = pos1 // downgrade last highest point
-                tmax2 = tmax1
+
+                if (uint16(x) - pos1) > 50 {
+                  pos2 = pos1 // downgrade last highest point
+                  tmax2 = tmax1
+                }
                 tmax1 = uint16(tpix)
-                pos1 = uint16(y)
-              } else if ( (tpix > tmax2) && (uint16(y) > pos1+50) ){
+                pos1 = uint16(x)
+              } else if ( (tpix > tmax2) && (uint16(x) > pos1+50) ){
                 tmax2 = uint16(tpix)
                 pos2 = uint16(x)
               }
@@ -113,17 +164,21 @@ func maxpeakvert1D( img image.Image ) []uint16 {
                platCnt += 1
             //   fmt.Println("Plataux")
             } else if (tpix == tpix_m1 && tpix > tpix_p1) { // falling edge
-            //  fmt.Println("Falling")
+              // fmt.Println("Falling")
               if (tpix > tmax1 && tpix > tmax2) { //check that its local max
-                pos2 = pos1 // downgrade last highest point
-                tmax2 = tmax1
+                if (uint16(x) - pos1) > 50 {//if current pos1 in more than 50 pixels away then update pos2
+                  pos2 = pos1 // downgrade last highest point
+                  tmax2 = tmax1
+                }
                 tmax1 = uint16(tpix)
-                pos1 = uint16(y)
-            //    fmt.Println(int(math.Ceil(float64(platCnt)/2)))
+                pos1 = uint16(x)
+                // fmt.Println(tmax1,int(math.Ceil(float64(platCnt)/2)))
                 pos1 = uint16((x - int(math.Ceil(float64(platCnt)/2))))
-              } else if ( (tpix > tmax2) && (uint16(y) > pos1+50) ) {
+              } else if ( (tpix > tmax2) && (uint16(x) > pos1+50) ) {
                 tmax2 = uint16(tpix)
                 pos2 = uint16((x - int(math.Ceil(float64(platCnt)/2))))
+                // fmt.Println(tmax2,pos2)
+
               }
               platCnt = 0
             }
@@ -149,7 +204,7 @@ func maxpeakvert1D( img image.Image ) []uint16 {
 
 func maxpeakhorz1D( img image.Image, threshold int ) []uint16 {
 
-  // fmt.Println("---------maxpeak1D----------")
+  //  fmt.Println("---------maxpeak1D----------")
 
 
   src := clone.AsGray16(img)
@@ -185,17 +240,21 @@ func maxpeakhorz1D( img image.Image, threshold int ) []uint16 {
             // fmt.Println(tpix_p1)
             // fmt.Println(tpix_m1)
             if (tpix > tpix_p1 && tpix > tpix_m1) { //check that we have a peak
+              // fmt.Println("Peak")
               if (tpix > tmax1 && tpix > tmax2) { //check that its local max
 
-                pos2 = pos1 // downgrade last highest point
-                tmax2 = tmax1
+                if (uint16(y) - pos1) > 50 {
+                  pos2 = pos1 // downgrade last highest point
+                  tmax2 = tmax1
+                }
+
                 tmax1 = uint16(tpix)
                 pos1 = uint16(y)
-          //      fmt.Println(pos1)
+                // fmt.Println(tmax1, pos1)
               } else if ( (tpix > tmax2) && (uint16(y) > pos1+50) ) {
                 tmax2 = uint16(tpix)
                 pos2 = uint16(y)
-        //        fmt.Println(pos2)
+                // fmt.Println(tmax2, pos2)
               }
             } else if (tpix > tpix_m1 && tpix == tpix_p1 ) {  //find rising edge
                 platCnt = 1
@@ -204,22 +263,25 @@ func maxpeakhorz1D( img image.Image, threshold int ) []uint16 {
                platCnt += 1
             //   fmt.Println("Plataux")
             } else if (tpix == tpix_m1 && tpix > tpix_p1) { // falling edge
-            //  fmt.Println("Falling")
+              // fmt.Println("Falling")
               if (tpix > tmax1 && tpix > tmax2) { //check that its local max
 
             //    fmt.Println(int(math.Ceil(float64(platCnt)/2)))
-                pos2 = pos1 // downgrade last highest point
-                tmax2 = tmax1
+                if (uint16(y) - pos1) > 50 {//if current pos1 in more than 50 pixels away then update pos2
+                  pos2 = pos1 // downgrade last highest point
+                  tmax2 = tmax1
+                }
                 tmax1 = uint16(tpix)
                 pos1 = uint16((y - int(math.Ceil(float64(platCnt)/2))))
-      //          fmt.Println(pos1)
+                // fmt.Println(tmax1, pos1)
               } else if ( (tpix > tmax2) && (uint16(y) > pos1+50) )  {
                 tmax2 = uint16(tpix)
                 pos2 = uint16((y - int(math.Ceil(float64(platCnt)/2))))
+                // fmt.Println(tmax2, pos2)
               }
               platCnt = 0
             }
-      //      fmt.Println("tpix: ", tpix, " tmax1: ", tmax1, " tmax2: ", tmax2)
+          //  fmt.Println("tpix: ", tpix, " tmax1: ", tmax1, " tmax2: ", tmax2)
           }
 
         }
