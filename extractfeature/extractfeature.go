@@ -46,15 +46,32 @@ func VerticalLinePositionsF64(src* image.Gray16, h1, h2, threshold int) []float6
 
 func HorizontalLinePosition(src* image.Gray16, w1, w2, threshold int) []uint16  {
 
-  // fmt.Println("-----------HLPos---------------")
+  fmt.Println("-----------HLPos---------------")
   //create subimage and pass to peak finder.
   subRect := image.Rect(w1, src.Bounds().Min.Y, w2, src.Bounds().Max.Y)
   subimage := src.SubImage(subRect)
 
   pair := maxpeakhorz1D( subimage, threshold )
-  // fmt.Println(pair)
+  fmt.Println(pair)
   avgpos := avg(pair)
-  // fmt.Println(avgpos)
+  fmt.Println(avgpos)
+  return avgpos
+
+}
+
+func HorizontalLinePositionsF64(src* image.Gray16, w1, w2, threshold int) []float64  {
+  fmt.Println("-----------HLPos---------------")
+
+  //create subimage and pass to peak finder.
+  subRect := image.Rect(w1, src.Bounds().Min.Y, w2, src.Bounds().Max.Y)
+  subimage := src.SubImage(subRect)
+
+  pair := maxpeakhorz1D( subimage, threshold )
+  fmt.Println(pair)
+
+  avgpos := avgf64(pair)
+  fmt.Println(avgpos)
+
   return avgpos
 
 }
@@ -224,7 +241,7 @@ func maxpeakhorz1D( img image.Image, threshold int ) []uint16 {
       var pos1 uint16 = 0
       var pos2 uint16 = 0
       var platCnt uint16 = 0
-      for y := 0; y < h; y++ {
+      for y := 10; y < h; y++ {
     //  fmt.Println("---------Col: ", y)
 
         if y > 0 && y < h-1 {

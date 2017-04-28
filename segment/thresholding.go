@@ -5,8 +5,10 @@ import (
 	"image"
 	"image/color"
 
-	"github.com/anthonynsimon/bild/clone"
-	"github.com/anthonynsimon/bild/util"
+	"github.com/phrfp/bild/clone"
+	"github.com/phrfp/bild/util"
+	"github.com/phrfp/bild/parallel"
+
 )
 
 // Threshold returns a grayscale image in which values from the param img that are
@@ -36,4 +38,29 @@ func Threshold(img image.Image, level uint8) *image.Gray {
 	}
 
 	return dst
+}
+
+func ThresholdG16( img image.Image, level_lower, level_upper uint16 ) *image.Gray {
+
+	src := clone.AsGray16(img)
+	bounds := src.Bounds()
+	w := src.Bounds().Dx()
+	h := src.Bounds().Dy()
+	dst := image.NewGray(bounds)
+
+		parallel.Line(w, func(start, end int){
+			for x := start; x < end; x++ {
+				for y:= 0; y < h; y++{
+						ipos := y*src.Stride + x*2
+						dstPos := y*dst.Stride + x
+						tpix := uint16(src.Pix[ipos+0])<<8 | uint16(src.Pix[ipos+1])
+						if (tpix >= level_lower) && (tpix <= level_upper) {
+							dst.Pix[dstPos] = 0x00
+						} else {
+							dst.Pix[dstPos] = 0xFF
+						}
+				}
+			}
+		})
+		return dst
 }

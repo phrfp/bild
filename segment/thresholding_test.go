@@ -4,7 +4,7 @@ import (
 	"image"
 	"testing"
 
-	"github.com/anthonynsimon/bild/util"
+	"github.com/phrfp/bild/util"
 )
 
 func TestThreshold(t *testing.T) {
@@ -95,6 +95,63 @@ func TestThreshold(t *testing.T) {
 		actual := Threshold(c.img, c.level)
 		if !util.GrayImageEqual(actual, c.expected) {
 			t.Errorf("%s: expected: %v actual: %v", "Threshold", c.expected, actual)
+		}
+	}
+}
+
+func TestThresholdG16(t *testing.T) {
+	cases := []struct {
+		level_up  uint16
+		level_lwr uint16
+		img      image.Image
+		expected *image.Gray
+	}{
+		{
+			level_lwr: 0,
+			level_up: 0xffff,
+			img: &image.Gray16{
+				Rect:   image.Rect(0, 0, 2, 2),
+				Stride: 2*2,
+				Pix: []uint8{
+					0x80, 0x80, 0x80, 0xFF,
+					0xFF, 0xFF, 0xFF, 0xFF,
+				},
+			},
+			expected: &image.Gray{
+				Rect:   image.Rect(0, 0, 2, 2),
+				Stride: 2,
+				Pix: []uint8{
+					0x00, 0x00,
+					0x00, 0x00,
+				},
+			},
+		},
+		{
+			level_lwr: 128,
+			level_up: 0xffff,
+			img: &image.Gray16{
+				Rect:   image.Rect(0, 0, 2, 2),
+				Stride: 2 * 2,
+				Pix: []uint8{
+					0x00, 0x08, 0x80, 0xFF,
+					0xFF, 0xFF, 0xFF, 0xFF,
+				},
+			},
+			expected: &image.Gray{
+				Rect:   image.Rect(0, 0, 2, 2),
+				Stride: 2,
+				Pix: []uint8{
+					0xFF, 0x00,
+					0x00, 0x00,
+				},
+			},
+		},
+	}
+
+	for _, c := range cases {
+		actual := ThresholdG16(c.img, c.level_lwr, c.level_up)
+		if !util.GrayImageEqual(actual, c.expected) {
+		t.Errorf("%s: \nexpected:%v\nactual:%v\n", "Trheshold", util.GrayToString(c.expected), util.GrayToString(actual))
 		}
 	}
 }

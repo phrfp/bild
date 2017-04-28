@@ -63,16 +63,16 @@ func RGBAToString(img *image.RGBA) string {
 
 
 // GaryToString returns a string representation of the Hex values contained in an image.RGBA.
-func GrayToString(img *image.Gray16) string {
+func GrayToString(img *image.Gray) string {
 	var result string
 	result += fmt.Sprintf("\nBounds: %v", img.Bounds())
 	result += fmt.Sprintf("\nStride: %v", img.Stride)
 	for y := 0; y < img.Bounds().Dy(); y++ {
 		result += "\n"
 		for x := 0; x < img.Bounds().Dx(); x++ {
-			pos := y*img.Stride + x*2
+			pos := y*img.Stride + x
 			result += fmt.Sprintf("%#X, ", img.Pix[pos+0])
-			result += fmt.Sprintf("%#X, ", img.Pix[pos+1])
+			
 
 		}
 	}

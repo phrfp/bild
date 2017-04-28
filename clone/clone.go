@@ -36,6 +36,14 @@ func AsGray16(src image.Image) *image.Gray16 {
 	return img
 }
 
+func AsGray(src image.Image) *image.Gray {
+	bounds := src.Bounds()
+	img := image.NewGray(bounds)
+	draw.Draw(img, bounds, src, bounds.Min, draw.Src)
+	return img
+}
+
+
 
 // Pad returns an RGBA copy of the src image paramter with its edges padded
 // using the supplied PadMethod.

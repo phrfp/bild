@@ -234,6 +234,48 @@ func TestAddG16(t *testing.T) {
 	}
 }
 
+func TestAddG8(t *testing.T) {
+	cases := []struct {
+		value0   image.Image
+		value1   image.Image
+		expected *image.Gray
+	}{
+		{
+			value0: &image.Gray{
+				Rect:   image.Rect(0, 0, 2, 2),
+				Stride: 2,
+				Pix: []uint8{
+					0x08, 0x50,
+					0x08, 0x50,
+				},
+			},
+			value1: &image.Gray{
+				Rect:   image.Rect(0, 0, 2, 2),
+				Stride: 2,
+				Pix: []uint8{
+					0x08, 0x80,
+					0x08, 0x80,
+				},
+			},
+			expected: &image.Gray{
+				Rect:   image.Rect(0, 0, 2, 2),
+				Stride: 2,
+				Pix: []uint8{
+					0x10, 0xd0,
+					0x10, 0xd0,
+				},
+			},
+		},
+	}
+
+	for _, c := range cases {
+		actual := AddG8(c.value0, c.value1)
+		if !util.GrayImageEqual(actual, c.expected) {
+			t.Errorf("%s: \nexpected:%v\nactual:%v\n", "AddG16: ", util.GrayToString(c.expected), util.GrayToString(actual))
+		}
+	}
+}
+
 func TestMultiply(t *testing.T) {
 	cases := []struct {
 		value0   image.Image

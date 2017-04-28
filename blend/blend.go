@@ -37,6 +37,16 @@ func Add(bg image.Image, fg image.Image) *image.RGBA {
 	return dst
 }
 
+
+func AddG8(bg image.Image, fg image.Image) *image.Gray {
+	dst := blendg8(bg, fg, func(c0, c1 fgray.GRAYF64) fgray.GRAYF64 {
+		grF64 := c0.GY + c1.GY
+		gr := fgray.GRAYF64{GY:grF64}
+		return gr
+	})
+	return dst
+}
+
 func AddG16(bg image.Image, fg image.Image) *image.Gray16 {
 	dst := blendg16(bg, fg, func(c0, c1 fgray.GRAYF64) fgray.GRAYF64 {
 		grF64 := c0.GY + c1.GY
@@ -64,7 +74,7 @@ func Multiply(bg image.Image, fg image.Image) *image.RGBA {
 
 func MultiplyG16(bg image.Image, fg image.Image) *image.Gray16 {
 	dst := blendg16(bg, fg, func(c0, c1 fgray.GRAYF64) fgray.GRAYF64 {
-		grF64 := ((c0.GY) * (c1.GY)) 
+		grF64 := ((c0.GY) * (c1.GY))
 		gr := fgray.GRAYF64{GY:grF64}
 		return gr
 	})
@@ -403,6 +413,49 @@ func blend(bg image.Image, fg image.Image, fn func(fcolor.RGBAF64, fcolor.RGBAF6
 
 	return dst
 }
+
+func blendg8(bg image.Image, fg image.Image, fn func(fgray.GRAYF64, fgray.GRAYF64) fgray.GRAYF64) *image.Gray {
+	bgBounds := bg.Bounds()
+	fgBounds := fg.Bounds()
+
+	var w, h int
+	if bgBounds.Dx() < fgBounds.Dx() {
+		w = bgBounds.Dx()
+	} else {
+		w = fgBounds.Dx()
+	}
+	if bgBounds.Dy() < fgBounds.Dy() {
+		h = bgBounds.Dy()
+	} else {
+		h = fgBounds.Dy()
+	}
+
+	bgSrc := clone.AsGray(bg)
+	fgSrc := clone.AsGray(fg)
+	dst := image.NewGray(image.Rect(0, 0, w, h))
+
+	parallel.Line(h, func(start, end int) {
+		for y := start; y < end; y++ {
+			for x := 0; x < w; x++ {
+				bgPos := y*bgSrc.Stride + x
+				fgPos := y*fgSrc.Stride + x
+				result := fn(
+					fgray.NewGrayG8F64(bgSrc.Pix[bgPos]),
+					fgray.NewGrayG8F64(fgSrc.Pix[fgPos]))
+
+
+				result.ClampG16()
+
+				dstPos := y*dst.Stride + x
+				tpix := uint8( result.GY * 255 )
+				dst.Pix[dstPos] = tpix
+			}
+		}
+	})
+
+	return dst
+}
+
 
 func blendg16(bg image.Image, fg image.Image, fn func(fgray.GRAYF64, fgray.GRAYF64) fgray.GRAYF64) *image.Gray16 {
 	bgBounds := bg.Bounds()
