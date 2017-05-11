@@ -10,7 +10,7 @@ import (
 )
 
 func VerticalLinePositions(src* image.Gray16, h1, h2, threshold int) []uint16  {
-  fmt.Println("-----------VLPos---------------")
+  //fmt.Println("-----------VLPos---------------")
 
   //create subimage and pass to peak finder.
   subRect := image.Rect(src.Bounds().Min.X, h1, src.Bounds().Max.X, h2)
@@ -27,7 +27,7 @@ func VerticalLinePositions(src* image.Gray16, h1, h2, threshold int) []uint16  {
 }
 
 func VerticalLinePositionsF64(src* image.Gray16, h1, h2, threshold int) []float64  {
-  fmt.Println("-----------VLPos---------------")
+  //fmt.Println("-----------VLPos---------------")
 
   //create subimage and pass to peak finder.
   subRect := image.Rect(src.Bounds().Min.X, h1, src.Bounds().Max.X, h2)
@@ -46,7 +46,7 @@ func VerticalLinePositionsF64(src* image.Gray16, h1, h2, threshold int) []float6
 
 func HorizontalLinePosition(src* image.Gray16, w1, w2, threshold int) []uint16  {
 
-  fmt.Println("-----------HLPos---------------")
+  //fmt.Println("-----------HLPos---------------")
   //create subimage and pass to peak finder.
   subRect := image.Rect(w1, src.Bounds().Min.Y, w2, src.Bounds().Max.Y)
   subimage := src.SubImage(subRect)
@@ -60,7 +60,7 @@ func HorizontalLinePosition(src* image.Gray16, w1, w2, threshold int) []uint16  
 }
 
 func HorizontalLinePositionsF64(src* image.Gray16, w1, w2, threshold int) []float64  {
-  fmt.Println("-----------HLPos---------------")
+  //fmt.Println("-----------HLPos---------------")
 
   //create subimage and pass to peak finder.
   subRect := image.Rect(w1, src.Bounds().Min.Y, w2, src.Bounds().Max.Y)
@@ -241,7 +241,7 @@ func maxpeakhorz1D( img image.Image, threshold int ) []uint16 {
       var pos1 uint16 = 0
       var pos2 uint16 = 0
       var platCnt uint16 = 0
-      for y := 10; y < h; y++ {
+      for y := 0; y < h; y++ {
     //  fmt.Println("---------Col: ", y)
 
         if y > 0 && y < h-1 {
@@ -254,10 +254,10 @@ func maxpeakhorz1D( img image.Image, threshold int ) []uint16 {
           if ( (tpix > tmax1 || tpix > tmax2) && tpix > uint16(threshold)) { // is it woorth evaluating the peak - add threshold
             tpix_p1 := uint16(src.Pix[ipos_p1+0])<<8 | uint16(src.Pix[ipos_p1+1])
             tpix_m1 := uint16(src.Pix[ipos_m1+0])<<8 | uint16(src.Pix[ipos_m1+1])
-            // fmt.Println(tpix_p1)
-            // fmt.Println(tpix_m1)
+    //         fmt.Println(tpix_p1)
+      //       fmt.Println(tpix_m1)
             if (tpix > tpix_p1 && tpix > tpix_m1) { //check that we have a peak
-              // fmt.Println("Peak")
+      //        fmt.Println("Peak")
               if (tpix > tmax1 && tpix > tmax2) { //check that its local max
 
                 if (uint16(y) - pos1) > 50 {
@@ -267,11 +267,11 @@ func maxpeakhorz1D( img image.Image, threshold int ) []uint16 {
 
                 tmax1 = uint16(tpix)
                 pos1 = uint16(y)
-                // fmt.Println(tmax1, pos1)
+                fmt.Println(tmax1, pos1)
               } else if ( (tpix > tmax2) && (uint16(y) > pos1+50) ) {
                 tmax2 = uint16(tpix)
                 pos2 = uint16(y)
-                // fmt.Println(tmax2, pos2)
+                fmt.Println(tmax2, pos2)
               }
             } else if (tpix > tpix_m1 && tpix == tpix_p1 ) {  //find rising edge
                 platCnt = 1
